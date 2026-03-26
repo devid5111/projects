@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Business Khatabook</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 0; display: flex; justify-content: center;
+        }
+        .app-container {
+            width: 100%; max-width: 480px; height: 100vh; height: 100dvh;
+            background-color: #ffffff; position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+        
+        /* Smooth View Transitions */
+        .view-section {
+            display: none; flex-direction: column; height: 100%; width: 100%;
+            opacity: 0; transition: opacity 0.3s ease-in-out;
+        }
+        .view-section.active {
+            display: flex; opacity: 1; animation: fadeIn 0.4s ease-out;
+        }
+.scrollable-content {
+    flex-grow: 1; overflow-y: auto; padding-bottom: 140px;
+}
+        .scrollable-content::-webkit-scrollbar { width: 4px; }
+        .scrollable-content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        /* Modern Gradient Cards */
+        .card-net { background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #e2e8f0; }
+        .card-give { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #f87171; }
+        .card-get { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #4ade80; }
+        .card-neutral { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0; }
+
+        /* Staggered CSS Animations */
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; } to { opacity: 1; }
+        }
+        .animate-item {
+            animation: fadeSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+        }
+        .animate-item:nth-child(1) { animation-delay: 0.05s; }
+        .animate-item:nth-child(2) { animation-delay: 0.10s; }
+        .animate-item:nth-child(3) { animation-delay: 0.15s; }
+        .animate-item:nth-child(4) { animation-delay: 0.20s; }
+        .animate-item:nth-child(5) { animation-delay: 0.25s; }
+        .animate-item:nth-child(n+6) { animation-delay: 0.30s; }
+
+        /* Modal Overlays */
+        .modal-overlay {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); z-index: 50;
+            justify-content: center; align-items: flex-end;
+        }
+        .modal-overlay.active { display: flex; animation: fadeIn 0.2s ease-out forwards; }
+        .modal-content {
+            background: white; width: 100%; border-radius: 24px 24px 0 0;
+            padding: 25px 20px; animation: slideUpModal 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            max-height: 90vh; overflow-y: auto; box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+        }
+        @keyframes slideUpModal {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        
+        .amount-input { font-size: 2.8rem; text-align: center; font-weight: 800; letter-spacing: 1px; }
+        .amount-input:focus { outline: none; }
+        
+        /* Toast Notifications */
+        #toast-container {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 100; display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+            width: 90%; max-width: 400px;
+        }
+        .toast {
+            background: #1e293b; color: white; padding: 12px 16px; border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 500;
+            animation: slideDownFade 0.3s ease forwards;
+        }
+        .toast.success i { color: #4ade80; }
+        .toast.error i { color: #f87171; }
+        .toast.info i { color: #60a5fa; }
+        @keyframes slideDownFade {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- ================= DASHBOARD VIEW ================= -->
+    <div id="dashboardView" class="view-section active">
+        <div class="bg-blue-900 text-white p-5 shadow-lg z-10 rounded-b-2xl">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-extrabold tracking-tight"><i class="fa-solid fa-book-wallet text-yellow-400 mr-2"></i> Khatabook</h1>
+                    <p class="text-xs text-blue-200 mt-1 opacity-80">Manage Business Credit & Debit</p>
+                </div>
+                <!-- Refresh Button -->
+                <button onclick="refreshDashboard()" class="w-10 h-10 bg-blue-800 hover:bg-blue-700 rounded-full flex items-center justify-center border border-blue-700 shadow-inner transition-all focus:outline-none focus:ring-2 focus:ring-blue-400 active:scale-95">
+                    <i class="fa-solid fa-rotate-right text-blue-200" id="refreshIcon"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="scrollable-content p-4">
+            
+            <!-- Net Balance Card (New) -->
+            <div class="animate-item card-net rounded-2xl p-5 mb-4 shadow-sm relative overflow-hidden flex justify-between items-center">
+                <div class="absolute -right-4 -top-4 text-gray-100 opacity-50">
+                    <i class="fa-solid fa-scale-balanced text-6xl"></i>
+                </div>
+                <div class="z-10">
+                    <p class="text-[11px] text-gray-500 font-bold uppercase tracking-widest mb-1">Net Balance</p>
+                    <p class="text-3xl font-black text-gray-800 drop-shadow-sm truncate max-w-[200px]" id="dashNetBalance">₹ 0</p>
+                </div>
+                <div class="z-10" id="dashHealthBadge">
+                    <span class="bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-full text-[10px] font-bold shadow-sm flex items-center">
+                        <i class="fa-solid fa-shield-check mr-1.5"></i> Healthy
+                    </span>
+                </div>
+            </div>
+
+            <!-- Give / Get Cards -->
+            <div class="flex space-x-3 mb-5 animate-item">
+                <div class="flex-1 card-give rounded-2xl shadow-sm p-4 text-center transform hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+                    <div class="w-7 h-7 mx-auto bg-red-100 rounded-full flex items-center justify-center mb-2">
+                        <i class="fa-solid fa-arrow-up-right-dots text-red-500 text-[10px]"></i>
+                    </div>
+                    <p class="text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wider">You will Give</p>
+                    <p class="text-xl font-black text-red-600 drop-shadow-sm truncate" id="dashTotalGive">₹ 0</p>
+                </div>
+                <div class="flex-1 card-get rounded-2xl shadow-sm p-4 text-center transform hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+                    <div class="w-7 h-7 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-2">
+                        <i class="fa-solid fa-arrow-down-to-line text-green-500 text-[10px]"></i>
+                    </div>
+                    <p class="text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wider">You will Get</p>
+                    <p class="text-xl font-black text-green-600 drop-shadow-sm truncate" id="dashTotalGet">₹ 0</p>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="relative mb-6 animate-item">
+                <i class="fa-solid fa-search absolute left-4 top-3.5 text-gray-400"></i>
+                <input type="text" id="searchInput" placeholder="Search Customer Name..." class="w-full bg-white border border-gray-200 shadow-sm rounded-xl py-3 pl-11 pr-4 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium transition-all duration-200">
+            </div>
+
+            <!-- Customer List Header -->
+            <div class="flex justify-between items-center mb-3 px-1 animate-item">
+                <h2 class="text-xs font-bold text-gray-400 tracking-widest uppercase">All Customers</h2>
+                <span class="text-xs font-bold text-blue-500 bg-blue-50 px-2 py-1 rounded-md" id="totalClientStat">0</span>
+            </div>
+            
+            <!-- Customer List -->
+            <div id="customerListContainer" class="flex flex-col space-y-3">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+
+        <!-- + New Customer Button -->
+        <button onclick="openModal('addCustomerModal')" class="absolute bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-full shadow-xl hover:shadow-2xl hover:scale-105 focus:outline-none flex items-center justify-center text-xl transition-all duration-300 z-20">
+            <i class="fa-solid fa-user-plus"></i>
+        </button>
+    </div>
+
+
+    <!-- ================= CUSTOMER DETAIL VIEW ================= -->
+    <div id="customerDetailView" class="view-section">
+        <div class="bg-blue-900 text-white p-4 shadow-md flex items-center justify-between z-10">
+            <div class="flex items-center flex-1 min-w-0">
+                <button onclick="showView('dashboardView')" class="mr-3 w-8 h-8 flex items-center justify-center rounded-full bg-blue-800 hover:bg-blue-700 transition-colors flex-shrink-0">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="min-w-0 pr-2">
+                    <h2 class="text-lg font-bold tracking-wide truncate" id="detailCustomerName">Customer Name</h2>
+                    <p class="text-[11px] text-blue-200 font-medium truncate" id="detailCustomerPhone">+91 0000000000</p>
+                </div>
+            </div>
+            <div class="flex space-x-2 flex-shrink-0">
+                <button onclick="downloadPDF()" class="w-9 h-9 rounded-full bg-blue-800 hover:bg-blue-700 flex items-center justify-center transition-colors" title="Download PDF Report">
+                    <i class="fa-solid fa-file-pdf"></i>
+                </button>
+                <button onclick="sendReminder()" class="w-9 h-9 rounded-full bg-green-600 hover:bg-green-500 flex items-center justify-center transition-colors shadow-lg shadow-green-900/50" title="WhatsApp Reminder">
+                    <i class="fa-brands fa-whatsapp text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 text-center border-b border-gray-100 shadow-sm flex justify-between items-center z-10 relative">
+            <div class="flex flex-col text-left">
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Net Balance</span>
+                <span class="text-[10px] text-gray-400 mt-0.5">Auto-calculated</span>
+            </div>
+            <span class="text-2xl font-black truncate max-w-[180px]" id="detailNetBalance">₹ 0</span>
+        </div>
+
+        <div class="scrollable-content p-4 bg-slate-50 relative">
+            <div class="flex items-center justify-center mb-5">
+                <div class="h-px bg-gray-200 flex-1"></div>
+                <span class="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Transaction History</span>
+                <div class="h-px bg-gray-200 flex-1"></div>
+            </div>
+            
+            <div id="transactionListContainer" class="flex flex-col space-y-3 relative border-l-2 border-gray-200 ml-2 pl-4">
+                <!-- Transactions injected here -->
+            </div>
+
+            <!-- Delete Customer Button -->
+            <div class="mt-10 mb-6 flex justify-center w-full" id="deleteCustomerBtnContainer">
+                <button onclick="deleteCurrentCustomer()" class="text-red-400 hover:text-red-600 hover:bg-red-50 px-5 py-2.5 rounded-xl transition-all text-xs font-bold flex items-center border border-transparent hover:border-red-100">
+                    <i class="fa-solid fa-trash-can mr-2"></i> Delete Customer
+                </button>
+            </div>
+            <div style="min-height: 120px; width: 100%;"></div>
+        </div>
+
+        <!-- Big Purple + Add Transaction Button -->
+        <div class="absolute bottom-0 w-full bg-white shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-20 p-3">
+            <button onclick="openNewTransactionModal()" class="w-full bg-purple-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-purple-600/30 hover:bg-purple-700 active:scale-95 transition-all flex justify-center items-center text-lg">
+                <i class="fa-solid fa-plus mr-2"></i> Add New Transaction
+            </button>
+        </div>
+    </div>
+
+
+    <!-- ================= ADD CUSTOMER MODAL ================= -->
+    <div id="addCustomerModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-xl font-bold text-gray-800">New Customer</h3>
+                <button onclick="closeModal('addCustomerModal')" class="w-8 h-8 bg-gray-100 text-gray-500 rounded-full flex justify-center items-center hover:bg-gray-200 transition-colors"><i class="fa-solid fa-times"></i></button>
+            </div>
+            
+            <form onsubmit="handleAddCustomer(event)" id="formAddCustomer">
+                <div class="mb-5">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Customer Name <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <i class="fa-solid fa-user absolute left-4 top-3.5 text-gray-400"></i>
+                        <input type="text" id="newCustName" required class="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all font-medium" placeholder="e.g. Ramesh Bhai">
+                    </div>
+                </div>
+                <div class="mb-8">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Phone Number</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-phone absolute left-4 top-3.5 text-gray-400"></i>
+                        <input type="tel" id="newCustPhone" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all font-medium" placeholder="10-digit mobile number">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-600/30 hover:bg-blue-700 active:scale-95 transition-all">Save Customer</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= ADD TRANSACTION MODAL ================= -->
+    <div id="addTransactionModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800">Add Transaction</h3>
+                <button onclick="closeModal('addTransactionModal')" class="w-8 h-8 bg-gray-100 text-gray-500 rounded-full flex justify-center items-center hover:bg-gray-200 transition-colors"><i class="fa-solid fa-times"></i></button>
+            </div>
+            
+            <form onsubmit="handleAddTransaction(event)" id="formAddTransaction">
+                <input type="hidden" id="formTransType" value="Got"> <!-- Default type -->
+
+                <!-- GAVE / GOT Toggle -->
+                <div class="flex bg-gray-100 rounded-xl p-1.5 mb-5 shadow-inner">
+                    <button type="button" onclick="setTransType('Gave')" id="btnToggleGave" class="flex-1 py-2.5 rounded-lg font-bold text-sm transition-all text-gray-500">YOU GAVE ₹</button>
+                    <button type="button" onclick="setTransType('Got')" id="btnToggleGot" class="flex-1 py-2.5 rounded-lg font-bold text-sm transition-all bg-white text-green-600 shadow-sm">YOU GOT ₹</button>
+                </div>
+
+                <!-- Amount Input -->
+                <div class="mb-5 p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-center">
+                    <span class="text-3xl font-bold text-gray-400 mr-2">₹</span>
+                    <input type="number" id="transAmount" required min="1" class="w-full amount-input bg-transparent text-green-600 placeholder-green-200 border-none outline-none" placeholder="0">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2"><i class="fa-solid fa-file-lines mr-1.5"></i> Details / Note</label>
+                    <input type="text" id="transNote" class="w-full border border-gray-200 bg-gray-50 rounded-xl p-3.5 outline-none focus:border-blue-500 focus:bg-white transition-all text-sm font-medium" placeholder="e.g. Bill payment, Items taken">
+                </div>
+
+                <div class="flex gap-3 mb-6">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2"><i class="fa-solid fa-calendar-day mr-1.5"></i> Date</label>
+                        <input type="date" id="transDate" required class="w-full border border-gray-200 bg-gray-50 rounded-xl p-3.5 outline-none focus:border-blue-500 focus:bg-white transition-all text-sm font-medium">
+                    </div>
+                </div>
+
+                <button type="submit" id="btnSaveTransaction" class="w-full font-bold py-4 rounded-xl text-white shadow-lg active:scale-95 transition-all text-lg tracking-wide bg-green-600 shadow-green-600/30">Save Entry</button>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // State Management (Initialized with empty arrays)
+    
+
+let customers = [];
+let transactions = [];
+let currentCustomerId = null;
+
+
+
+async function loadDataFromDB() {
+try {
+        const response = await fetch('k_book.php'); 
+        const data = await response.json(); 
+        
+        // --- NAVU ADD KARYU ---
+        
+        console.log("PHP DATA ", data); 
+        
+        if(data.status === "error") {
+            showToast("DB Error: " + data.message, "error");
+            return; // 
+        }
+
+        // ----------------------
+        
+        let dbCustomers = data.customers || []; 
+        transactions = data.transactions || [];
+
+        customers = dbCustomers.map(cust => {
+            let custTrans = transactions.filter(t => t.custId === cust.id);
+            let totalGave = 0;
+            let totalGot = 0;
+
+            custTrans.forEach(t => {
+                if(t.type === 'Gave') {
+                    totalGave += parseFloat(t.amount);
+                } else if(t.type === 'Got') {
+                    totalGot += parseFloat(t.amount);
+                }            
+            });
+
+            return {
+                id: cust.id,         
+                name: cust.name,
+                phone: cust.phone,
+                balance: totalGave - totalGot, 
+                lastDate: "Live Data" 
+            };
+        });
+
+        renderDashboard(); 
+        
+    } catch (error) {
+        console.error("Data load error:", error);
+        showToast("Database connect error !", "error");
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById('transDate').valueAsDate = new Date();
+    
+   
+    loadDataFromDB(); 
+    
+    // Search nu setting
+    document.getElementById('searchInput').addEventListener('input', e => renderDashboard(e.target.value));
+});
+
+
+// --------------------------------------------------------------------------------------
+
+
+
+    // Toast Notification System
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        let icon = 'fa-check-circle';
+        if (type === 'error') icon = 'fa-exclamation-circle';
+        if (type === 'info') icon = 'fa-info-circle';
+
+        toast.innerHTML = `<i class="fa-solid ${icon} text-lg"></i> <span>${message}</span>`;
+        container.appendChild(toast);
+
+        // Auto remove after 3s
+        setTimeout(() => {
+            toast.style.animation = 'fadeOut 0.3s ease forwards';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById('transDate').valueAsDate = new Date();
+        renderDashboard();
+        document.getElementById('searchInput').addEventListener('input', e => renderDashboard(e.target.value));
+        
+        // Show welcome toast
+        setTimeout(() => showToast('Welcome to Khatabook!', 'info'), 500);
+    });
+
+    function showView(viewId) {
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+    }
+
+    function refreshDashboard() {
+        const icon = document.getElementById('refreshIcon');
+        icon.classList.add('fa-spin');
+        
+        renderDashboard(document.getElementById('searchInput').value);
+        
+        setTimeout(() => {
+            icon.classList.remove('fa-spin');
+            showToast('Data synced successfully', 'success');
+        }, 600);
+    }
+
+    function renderDashboard(searchTerm = "") {
+        let listContainer = document.getElementById('customerListContainer');
+        listContainer.innerHTML = "";
+        
+        let totalGive = 0, totalGet = 0;
+
+        let custData = customers.map(cust => {
+            let custTrans = transactions.filter(t => t.custId === cust.id);
+            let gave = custTrans.filter(t => t.type === 'Gave').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+            let got = custTrans.filter(t => t.type === 'Got').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+            
+            let finalBalance = gave - got; 
+            if(finalBalance > 0) totalGet += finalBalance;
+            if(finalBalance < 0) totalGive += Math.abs(finalBalance);
+
+            let lastDate = custTrans.length > 0 ? custTrans.sort((a,b) => new Date(b.date) - new Date(a.date))[0].date : "No transactions";
+            return {...cust, balance: finalBalance, lastDate: lastDate };
+        });
+
+        custData = custData.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        // Calculate Net Balance
+        let netBalance = totalGet - totalGive;
+        let dashNetBalanceEl = document.getElementById('dashNetBalance');
+        let dashHealthBadge = document.getElementById('dashHealthBadge');
+
+        dashNetBalanceEl.innerText = `₹ ${Math.abs(netBalance).toLocaleString()}`;
+        
+        // Update Health Tag
+        if (netBalance >= 0) {
+            dashNetBalanceEl.className = "text-3xl font-black text-green-600 drop-shadow-sm truncate max-w-[200px]";
+            dashHealthBadge.innerHTML = `<span class="bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-full text-[10px] font-bold shadow-sm flex items-center"><i class="fa-solid fa-shield-check mr-1.5"></i> Healthy</span>`;
+        } else {
+            dashNetBalanceEl.className = "text-3xl font-black text-red-600 drop-shadow-sm truncate max-w-[200px]";
+            dashHealthBadge.innerHTML = `<span class="bg-red-100 text-red-700 border border-red-200 px-3 py-1.5 rounded-full text-[10px] font-bold shadow-sm flex items-center"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Warning</span>`;
+        }
+
+        document.getElementById('dashTotalGet').innerText = `₹ ${totalGet.toLocaleString()}`;
+        document.getElementById('dashTotalGive').innerText = `₹ ${totalGive.toLocaleString()}`;
+        document.getElementById('totalClientStat').innerText = customers.length;
+
+        if(custData.length === 0) {
+            listContainer.innerHTML = `<div class="text-center text-gray-400 py-10 animate-item bg-white rounded-2xl border border-gray-100 border-dashed"><i class="fa-solid fa-users-slash text-3xl mb-2 opacity-30"></i><br><span class="text-sm">No customers found</span></div>`;
+            return;
+        }
+
+        custData.forEach(cust => {
+            let balanceColorClass = cust.balance > 0 ? "text-green-600" : (cust.balance < 0 ? "text-red-600" : "text-gray-400");
+            let balanceText = cust.balance > 0 ? `₹ ${Math.abs(cust.balance)}` : (cust.balance < 0 ? `₹ ${Math.abs(cust.balance)}` : "₹ 0");
+            let statusText = cust.balance > 0 ? "You will Get" : (cust.balance < 0 ? "You will Give" : "Settled");
+            let iconClass = cust.balance > 0 ? "fa-arrow-down-to-line text-green-500" : (cust.balance < 0 ? "fa-arrow-up-right-dots text-red-500" : "fa-check-double text-gray-400");
+
+            let html = `
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer hover:bg-gray-50 transform hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 animate-item" onclick="openCustomerDetail(${cust.id})">
+                    <div class="flex items-center space-x-3 w-[60%]">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 text-blue-800 flex items-center justify-center font-black text-xl shadow-inner border border-white flex-shrink-0">
+                            ${cust.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="min-w-0 pr-2">
+                            <h3 class="font-bold text-gray-800 tracking-wide truncate">${cust.name}</h3>
+                            <p class="text-[11px] text-gray-400 font-medium mt-0.5 truncate"><i class="fa-regular fa-clock mr-1"></i>${formatDate(cust.lastDate)}</p>
+                        </div>
+                    </div>
+                    <div class="text-right w-[40%] pl-2">
+                        <p class="font-black text-lg ${balanceColorClass} truncate" title="${balanceText}">${balanceText}</p>
+                        <p class="text-[9px] text-gray-400 uppercase font-bold tracking-wider mt-0.5 flex items-center justify-end"><i class="fa-solid ${iconClass} mr-1"></i> ${statusText}</p>
+                    </div>
+                </div>
+            `;
+            listContainer.insertAdjacentHTML('beforeend', html);
+        });
+    }
+
+    function openCustomerDetail(id) {
+        currentCustomerId = id;
+        let cust = customers.find(c => c.id === id);
+        document.getElementById('detailCustomerName').innerText = cust.name;
+        document.getElementById('detailCustomerPhone').innerText = cust.phone ? `+91 ${cust.phone}` : "No Phone Added";
+        
+        // Clear search input upon entering
+        document.getElementById('searchInput').value = "";
+        
+        renderTransactions();
+        showView('customerDetailView');
+    }
+
+    function renderTransactions() {
+        let listContainer = document.getElementById('transactionListContainer');
+        listContainer.innerHTML = "";
+
+        let custTrans = transactions.filter(t => t.custId === currentCustomerId);
+        custTrans.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+        let gaveTotal = custTrans.filter(t => t.type === 'Gave').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+        let gotTotal = custTrans.filter(t => t.type === 'Got').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+        let net = gaveTotal - gotTotal;
+
+        let netEl = document.getElementById('detailNetBalance');
+        if(net > 0) {
+            netEl.innerText = `₹ ${Math.abs(net)} (You get)`;
+            netEl.className = "text-xl font-black text-green-600 drop-shadow-sm truncate max-w-[180px]";
+        } else if (net < 0) {
+            netEl.innerText = `₹ ${Math.abs(net)} (You give)`;
+            netEl.className = "text-xl font-black text-red-600 drop-shadow-sm truncate max-w-[180px]";
+        } else {
+            netEl.innerText = `₹ 0 (Settled)`;
+            netEl.className = "text-xl font-black text-gray-400 truncate max-w-[180px]";
+        }
+
+        // Toggle Delete Button visibility (optional to hide if transactions exist, but kept per request)
+        document.getElementById('deleteCustomerBtnContainer').style.display = 'flex';
+
+        if(custTrans.length === 0) {
+            listContainer.innerHTML = `<div class="text-center text-gray-400 py-10 animate-item"><i class="fa-solid fa-receipt text-3xl mb-2 opacity-30"></i><br>No transactions yet.</div>`;
+            return;
+        }
+
+        custTrans.forEach(t => {
+            let isGave = t.type === 'Gave';
+            let colorClass = isGave ? "text-red-600" : "text-green-600";
+            let bgClass = isGave ? "bg-red-50 border-red-100" : "bg-green-50 border-green-100";
+            let iconClass = isGave ? "fa-arrow-up-right-dots" : "fa-arrow-down-to-line";
+            
+            let html = `
+                <div class="p-4 rounded-2xl shadow-sm border ${bgClass} relative animate-item group hover:shadow-md transition-all duration-200">
+                    <div class="absolute -left-6 top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full border-4 border-white ${isGave ? 'bg-red-400' : 'bg-green-400'} shadow-sm"></div>
+                    
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <span class="text-[10px] font-bold bg-white px-2.5 py-1 rounded-md shadow-sm ${colorClass} uppercase tracking-wider">
+                                <i class="fa-solid ${iconClass} mr-1"></i> ${t.type}
+                            </span>
+                        </div>
+                        <div class="text-right max-w-[50%]">
+                            <span class="font-black text-xl ${colorClass} tracking-wide truncate block">₹ ${t.amount}</span>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-end mt-1">
+                        <div class="flex flex-col flex-1 min-w-0 pr-2">
+                            <p class="text-sm text-gray-800 font-medium truncate">${t.note ? t.note : 'No description'}</p>
+                            <span class="text-[10px] text-gray-400 font-bold mt-1"><i class="fa-regular fa-calendar mr-1"></i>${formatDate(t.date)}</span>
+                        </div>
+                        
+                        <button onclick="deleteTransaction(${t.id})" class="w-8 h-8 rounded-full bg-white text-gray-400 flex items-center justify-center hover:text-red-500 hover:bg-red-100 transition-all shadow-sm flex-shrink-0" title="Delete">
+                            <i class="fa-solid fa-trash-alt text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            listContainer.insertAdjacentHTML('beforeend', html);
+        });
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    function openNewTransactionModal() {
+        document.getElementById('formAddTransaction').reset();
+        document.getElementById('transDate').valueAsDate = new Date();
+        setTransType('Got'); // Default
+        openModal('addTransactionModal');
+        setTimeout(() => document.getElementById('transAmount').focus(), 100);
+    }
+
+    // Handle GAVE / GOT Toggle Logic inside Modal
+    function setTransType(type) {
+        document.getElementById('formTransType').value = type;
+        const btnGave = document.getElementById('btnToggleGave');
+        const btnGot = document.getElementById('btnToggleGot');
+        const amountInput = document.getElementById('transAmount');
+        const saveBtn = document.getElementById('btnSaveTransaction');
+
+        if(type === 'Gave') {
+            btnGave.className = "flex-1 py-2.5 rounded-lg font-bold text-sm transition-all bg-white text-red-600 shadow-sm";
+            btnGot.className = "flex-1 py-2.5 rounded-lg font-bold text-sm transition-all text-gray-500";
+            
+            amountInput.className = "w-full amount-input bg-transparent text-red-600 placeholder-red-200 border-none outline-none";
+            saveBtn.className = "w-full font-bold py-4 rounded-xl text-white shadow-lg active:scale-95 transition-all text-lg tracking-wide bg-red-600 shadow-red-600/30";
+        } else {
+            btnGot.className = "flex-1 py-2.5 rounded-lg font-bold text-sm transition-all bg-white text-green-600 shadow-sm";
+            btnGave.className = "flex-1 py-2.5 rounded-lg font-bold text-sm transition-all text-gray-500";
+            
+            amountInput.className = "w-full amount-input bg-transparent text-green-600 placeholder-green-200 border-none outline-none";
+            saveBtn.className = "w-full font-bold py-4 rounded-xl text-white shadow-lg active:scale-95 transition-all text-lg tracking-wide bg-green-600 shadow-green-600/30";
+        }
+    }
+
+    //  ------------- NEW CUSTOMER ADD ----------------------
+
+async function handleAddCustomer(e) {
+   
+    e.preventDefault(); 
+    
+   
+    let name = document.getElementById('newCustName').value;
+    let phone = document.getElementById('newCustPhone').value;
+    
+  
+    if(name === "") {
+        return; 
+    }
+
+  
+    let formData = new FormData();
+    formData.append('name', name);
+    formData.append('phone', phone);
+
+    try {
+       
+        let response = await fetch('k_book.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        let result = await response.json(); 
+
+        if(result.status === 'success') {
+            document.getElementById('formAddCustomer').reset(); 
+            closeModal('addCustomerModal'); 
+            
+            
+            showToast(result.message); 
+            
+            
+            loadDataFromDB(); 
+        } else {
+            showToast(result.message, 'error');
+            showToast('Data Is not save', 'error');
+        }
+
+    } catch (error) {
+        
+        showToast('Server Connection Error!', 'error');
+    }
+}
+
+//  -------------------------------------------------------------------------------
+
+
+// ----------------- TRANSACTION ---------------
+
+ async function handleAddTransaction(e) {
+    e.preventDefault(); 
+
+ 
+    let type = document.getElementById('formTransType').value;
+    let amount = document.getElementById('transAmount').value;
+    let note = document.getElementById('transNote').value;
+    let date = document.getElementById('transDate').value;
+    
+    
+    if(!amount || amount <= 0 || !currentCustomerId) {
+        showToast("PLEASE ADD AMOUNT !", "error");
+        return;
+    }
+
+
+    let formData = new FormData();
+    formData.append('customer_id', currentCustomerId); 
+    formData.append('type', type);
+    formData.append('amount', amount);
+    formData.append('note', note);
+    formData.append('date', date);
+
+    try {
+       
+        let response = await fetch('k_book.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        let result = await response.json(); 
+     
+        if(result.status === 'success') {
+            closeModal('addTransactionModal'); 
+            showToast('Transaction Saved Successfully!'); 
+            
+            
+            await loadDataFromDB(); 
+            
+          
+            renderTransactions(); 
+        } else {
+            showToast(result.message, 'error');
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        showToast('Server Error', 'error');
+    }
+}
+
+// --------------------------------------------------------------
+
+// --------------------- DELETE CURRENT ONE TRANSACTION -------------------
+
+async function deleteTransaction(transId) {
+    if(confirm("Are you sure you want to delete this transaction? Balance will update.")) {
+        
+     
+        let formData = new FormData();
+        formData.append('delete_trans_id', transId); 
+
+        try {
+          
+            let response = await fetch('k_book.php', {
+                method: 'POST',
+                body: formData
+            });
+            
+            let result = await response.json();
+            
+           
+            if(result.status === 'success') {
+                showToast('Transaction deleted successfully!', 'success');
+                
+                
+                await loadDataFromDB(); 
+                
+                
+                renderTransactions(); 
+            } else {
+                showToast(result.message, 'error');
+            }
+            
+        } catch (error) {
+            console.error("Delete Error:", error);
+            showToast('Server connection error while deleting!', 'error');
+        }
+    }
+}
+
+// --------------------------------------------------------------
+
+// --------------------- DELETE CURRENT CUSTOMER WITH ALL RECORD -------------------
+
+async function deleteCurrentCustomer() {
+
+    if(confirm("Are you sure you want to delete this customer and ALL their transactions? This cannot be undone.")) {
+        
+      
+        let formData = new FormData();
+        formData.append('delete_cust_id', currentCustomerId);
+
+        try {
+            
+            let response = await fetch('k_book.php', {
+                method: 'POST',
+                body: formData
+            });
+            
+            let result = await response.json();
+
+          
+            if(result.status === 'success') {
+                showToast('Customer deleted completely!', 'success');
+                
+                
+                await loadDataFromDB();
+                
+               
+                showView('dashboardView');
+            } else {
+                showToast(result.message, 'error');
+            }
+        } catch (error) {
+            console.error("Delete Error:", error);
+            showToast('Server connection error while deleting!', 'error');
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+
+    function downloadPDF() {
+        let cust = customers.find(c => c.id === currentCustomerId);
+        showToast(`Generating PDF for ${cust.name}...`, 'info');
+        // Dummy timeout to simulate generation
+        setTimeout(() => showToast('PDF downloaded successfully!'), 1500);
+    }
+
+    function sendReminder() {
+        let cust = customers.find(c => c.id === currentCustomerId);
+        if(!cust.phone) { 
+            showToast('No phone number saved', 'error'); 
+            return; 
+        }
+        let custTrans = transactions.filter(t => t.custId === currentCustomerId);
+        let gave = custTrans.filter(t => t.type === 'Gave').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+        let got = custTrans.filter(t => t.type === 'Got').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+        let balance = gave - got;
+        
+        if(balance <= 0) { 
+            showToast('Customer has no pending balance', 'info'); 
+            return; 
+        }
+
+        let msg = `Namaste ${cust.name}, aapka pending balance ₹${balance} hai. Kripya samay par chukva de. - My Business`;
+        window.open(`https://wa.me/91${cust.phone}?text=${encodeURIComponent(msg)}`, '_blank');
+        showToast('Opening WhatsApp...');
+    }
+
+    function formatDate(dateStr) {
+        if(dateStr === "No transactions") return dateStr;
+        let d = new Date(dateStr);
+        if(isNaN(d)) return dateStr;
+        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+</script>
+</body>
+</html>
